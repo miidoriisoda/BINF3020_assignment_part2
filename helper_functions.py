@@ -143,10 +143,13 @@ def plot_nj_tree(tree: Node, ax: Axes = None, **kwargs) -> None:
     if ax is None:
         _, ax = plt.subplots(nrows=1, ncols=1, figsize=(8, 8))
 
-    colour = "black"
+    # Optional extra args
+    show_lengths = kwargs.get("show_branch_lengths", False)
+    leaf_colours = kwargs.get("leaf_colours", {})
+    legend = kwargs.get("legend") # {group name: colour}
+    colour = "#8391A3"
     lw = 1.5
     fontsize = 10
-    show_lengths = kwargs.get("show_branch_lengths", False)
 
     next_row = [0]
 
@@ -161,6 +164,7 @@ def plot_nj_tree(tree: Node, ax: Axes = None, **kwargs) -> None:
             ax.annotate(
                 node.name, (x, y), xytext=(5, 0), textcoords="offset points",
                 va="center", ha="left", fontsize=fontsize,
+                color=leaf_colours.get(node.name, "black")
             )
             return y
 
@@ -187,6 +191,12 @@ def plot_nj_tree(tree: Node, ax: Axes = None, **kwargs) -> None:
         return y
 
     draw(tree, 0.0)
+    if legend:
+        from matplotlib.lines import Line2D
+        ax.legend(
+            handles=[Line2D([0], [0], color=c, lw=4, label=g) for g, c in legend.items()],
+            title="Group", loc="upper left", frameon=False,
+        )
 
     ax.invert_yaxis()                 # first leaf at the top
     ax.margins(x=0.2, y=0.05)         # leave room for the leaf labels
@@ -286,7 +296,20 @@ def sort_children_by_leaves(tree: Node) -> None:
         The root node of the tree.
 
     """
-    raise NotImplementedError()
+    def visit(node: Node) -> int:
+        # Base case: leaf
+        if node.left is None and node.right is None:
+            return 1
+        # Recurse down left & right
+        n_left = visit(node.left)
+        n_right = visit(node.right)
+        # do not re-arrange if tie
+        if n_left > n_right:
+            node.left, node.right = node.right, node.left
+            node.left_distance, node.right_distance = node.right_distance, node.left_distance
+        return n_left + n_right
+
+    visit(tree)
 
 
 def plot_nj_tree_radial(tree: Node, ax: Axes = None, **kwargs) -> None:
