@@ -2,6 +2,7 @@
 import numpy as np
 from copy import deepcopy
 from matplotlib.axes import Axes
+import matplotlib.pyplot as plt
 
 
 class Node:
@@ -139,8 +140,60 @@ def plot_nj_tree(tree: Node, ax: Axes = None, **kwargs) -> None:
     >>> fig.savefig("example.png")
 
     """
+    if ax is None:
+        _, ax = plt.subplots(nrows=1, ncols=1, figsize=(8, 8))
 
-    return ax
+    colour = "black"
+    lw = 1.5
+    fontsize = 10
+    show_lengths = kwargs.get("show_branch_lengths", False)
+
+    next_row = [0]
+
+    def is_leaf(node):
+        return node.left is None and node.right is None
+
+    def draw(node, x):
+        """Draw the subtree rooted at node (located at x). Returns the node's y."""
+        if is_leaf(node):
+            y = next_row[0]
+            next_row[0] += 1
+            ax.annotate(
+                node.name, (x, y), xytext=(5, 0), textcoords="offset points",
+                va="center", ha="left", fontsize=fontsize,
+            )
+            return y
+
+        x_left = x + node.left_distance
+        x_right = x + node.right_distance
+        y_left = draw(node.left, x_left)
+        y_right = draw(node.right, x_right)
+
+        # Horizontal branches to the children, vertical connector at this node
+        ax.plot([x, x_left], [y_left, y_left], color=colour, lw=lw, solid_capstyle="butt")
+        ax.plot([x, x_right], [y_right, y_right], color=colour, lw=lw, solid_capstyle="butt")
+        ax.plot([x, x], [y_left, y_right], color=colour, lw=lw, solid_capstyle="butt")
+
+        if show_lengths:
+            for xa, xb, y, d in [
+                (x, x_left, y_left, node.left_distance),
+                (x, x_right, y_right, node.right_distance),
+            ]:
+                ax.annotate(f"{d:.2f}", ((xa + xb) / 2, y), xytext=(0, 3),
+                            textcoords="offset points", ha="center",
+                            va="bottom", fontsize=fontsize - 3)
+
+        y = (y_left + y_right) / 2
+        return y
+
+    draw(tree, 0.0)
+
+    ax.invert_yaxis()                 # first leaf at the top
+    ax.margins(x=0.2, y=0.05)         # leave room for the leaf labels
+    ax.set_yticks([])
+    for side in ("left", "right", "top"):
+        ax.spines[side].set_visible(False)
+    ax.set_xlabel("Genetic distance")
 
 
 def _find_a_parent_to_node(tree: Node, node: Node) -> tuple:
