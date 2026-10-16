@@ -13,7 +13,7 @@ from helper_functions import (
     plot_nj_tree,
 )
 
-Entrez.email = "r.nayager@unsw.edu.au"
+Entrez.email = "r.nayager@student.unsw.edu.au"
 
 def hamming_matrix(seqs):
     """Calculate pairwise Hamming distances between aligned sequences."""
